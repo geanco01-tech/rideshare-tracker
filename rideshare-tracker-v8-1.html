@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rideshare Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222535;
+    --border: #2e3148;
+    --uber: #818cf8;
+    --private-booked: #fb923c;
+    --private-done: #4ade80;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --danger: #f87171;
+    --warning: #fbbf24;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 100px; }
+
+  /* Header */
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .logo { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+  .logo em { font-style: normal; color: var(--uber); }
+  #todayBadge { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  /* Month tabs */
+  .month-tabs { display: flex; gap: 6px; padding: 12px 16px 8px; overflow-x: auto; scrollbar-width: none; }
+  .month-tabs::-webkit-scrollbar { display: none; }
+  .tab { flex-shrink: 0; padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: all .15s; }
+  .tab.active { background: var(--uber); border-color: var(--uber); color: #fff; }
+
+  /* ── TARGET BANNER ── */
+  .target-banner {
+    margin: 10px 16px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .target-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .target-label { font-size: 12px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); font-weight: 600; }
+  .target-edit-btn { font-size: 12px; color: var(--uber); background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 600; padding: 3px 8px; border-radius: 8px; background: rgba(129,140,248,.1); }
+
+  .target-val { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 600; color: #fff; margin-bottom: 12px; }
+
+  /* Progress bar */
+  .prog-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .prog-track { height: 8px; background: var(--surface2); border-radius: 8px; overflow: hidden; margin-bottom: 12px; }
+  .prog-fill { height: 100%; border-radius: 8px; transition: width .4s; }
+
+  /* Stats row */
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .stat { background: var(--surface2); border-radius: 10px; padding: 10px 10px 8px; }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin-bottom: 4px; }
+  .stat-val { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600; }
+
+  /* Daily avg needed */
+  .avg-needed {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .avg-left { display: flex; flex-direction: column; gap: 2px; }
+  .avg-label { font-size: 11px; color: var(--muted); }
+  .avg-val { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 600; }
+  .avg-sub { font-size: 11px; color: var(--muted); }
+  .avg-days { text-align: right; }
+  .avg-days-num { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 600; color: var(--muted); }
+  .avg-days-label { font-size: 11px; color: var(--muted); }
+
+  /* Legend */
+  .legend { display: flex; gap: 14px; padding: 10px 16px 4px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Section header */
+  .sec { padding: 12px 16px 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); display: flex; align-items: center; justify-content: space-between; }
+  .sec-note { font-size: 11px; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+
+  /* Day list */
+  .day-list { padding: 0 16px; display: flex; flex-direction: column; gap: 5px; }
+
+  .day-row {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px;
+    display: grid; grid-template-columns: 32px 32px 36px 1fr auto;
+    align-items: center; gap: 8px;
+  }
+  .day-row.has-entries { cursor: pointer; }
+  .day-row.has-entries:hover { border-color: var(--uber); }
+  .day-row.is-today { border-color: var(--uber); background: #1c1f30; }
+  .day-row.is-past { opacity: .55; }
+  .day-row.workday-checked { border-left: 3px solid var(--uber); }
+  .day-row.weekend-row { opacity: .4; }
+
+  .d-check { cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .check-box {
+    width: 18px; height: 18px; border-radius: 5px;
+    border: 2px solid var(--border); background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s; flex-shrink: 0;
+  }
+  .check-box.checked { background: var(--uber); border-color: var(--uber); }
+  .check-box.checked::after { content: '✓'; font-size: 11px; color: #fff; font-weight: 700; }
+  .check-box.weekend-check { border-color: transparent; opacity: 0; pointer-events: none; }
+
+  .d-num { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; color: var(--muted); }
+  .d-num.today { color: var(--uber); }
+  .d-wday { font-size: 11px; color: var(--muted); }
+  .d-wday.weekend { color: var(--private-booked); opacity: .7; }
+
+  .d-entries { display: flex; flex-wrap: wrap; gap: 4px; }
+  .entry-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+  .pill-uber { background: rgba(129,140,248,.12); color: var(--uber); }
+  .pill-booked { background: rgba(251,146,60,.12); color: var(--private-booked); }
+  .pill-done { background: rgba(74,222,128,.12); color: var(--private-done); }
+
+  .d-total { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: var(--muted); text-align: right; white-space: nowrap; }
+  .d-total.has-val { color: #fff; }
+
+  /* FABs */
+  .fabs { position: fixed; bottom: 22px; right: 18px; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; z-index: 150; }
+  .fab { display: flex; align-items: center; gap: 8px; padding: 0 18px 0 14px; height: 46px; border-radius: 23px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; box-shadow: 0 4px 16px rgba(0,0,0,.4); transition: transform .15s; }
+  .fab:active { transform: scale(.94); }
+  .fab-uber { background: var(--uber); color: #fff; }
+  .fab-private { background: var(--private-booked); color: #fff; }
+  .fab-icon { font-size: 17px; line-height: 1; }
+
+  /* Sheets */
+  .sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
+  .sheet-overlay.open { display: flex; }
+  .sheet { background: var(--surface); border: 1px solid var(--border); border-radius: 20px 20px 0 0; width: 100%; max-width: 540px; padding: 20px 20px 44px; animation: slideUp .2s ease; }
+  @keyframes slideUp { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .sheet-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .sheet-title small { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 6px; }
+
+  .date-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .date-select { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px; color: var(--text); font-size: 15px; font-family: 'Inter', sans-serif; outline: none; appearance: none; }
+  .date-select:focus { border-color: var(--uber); }
+
+  .field { margin-bottom: 14px; }
+  .field-label { font-size: 12px; color: var(--muted); margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
+  .field-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-size: 17px; font-family: 'JetBrains Mono', monospace; outline: none; transition: border-color .15s; }
+  .field-input:focus { border-color: var(--uber); }
+
+  .complete-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+  .complete-box-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--private-booked); }
+
+  .sheet-btns { display: flex; gap: 8px; margin-top: 4px; }
+  .btn { flex: 1; padding: 13px; border-radius: 12px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: opacity .15s; }
+  .btn:active { opacity: .8; }
+  .btn-save { background: var(--uber); color: #fff; }
+  .btn-save-private { background: var(--private-booked); color: #fff; }
+  .btn-complete { background: var(--private-done); color: #000; }
+  .btn-cancel { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-del { background: transparent; color: var(--danger); border: 1px solid var(--danger); flex: 0; padding: 13px 14px; }
+
+  /* Day detail */
+  .entry-detail { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .detail-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .detail-left { display: flex; flex-direction: column; gap: 3px; }
+  .detail-type { font-size: 12px; font-weight: 600; }
+  .detail-amount { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 600; }
+  .detail-actions { display: flex; gap: 6px; margin-top: 6px; }
+  .mini-btn { padding: 5px 12px; border-radius: 20px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; }
+  .mini-complete { background: rgba(74,222,128,.15); color: var(--private-done); }
+  .mini-edit { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+  .mini-del { background: rgba(248,113,113,.1); color: var(--danger); }
+
+  /* Target edit sheet */
+  .target-input-big { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 14px; color: #fff; font-size: 28px; font-family: 'JetBrains Mono', monospace; outline: none; text-align: center; }
+  .target-input-big:focus { border-color: var(--uber); }
+
+  /* History sheet */
+  .hist-row { display:flex; align-items:center; justify-content:space-between; background:var(--surface2); border-radius:10px; padding:10px 12px; }
+  .hist-month { font-size:14px; font-weight:600; min-width:100px; }
+  .hist-input-wrap { display:flex; align-items:center; gap:6px; }
+  .hist-dollar { font-size:15px; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+  .hist-input { width:110px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:15px; font-family:'JetBrains Mono',monospace; outline:none; text-align:right; }
+  .hist-input:focus { border-color:var(--uber); }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%) translateY(12px); background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 9px 18px; font-size: 13px; opacity: 0; transition: all .2s; pointer-events: none; z-index: 400; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Ride<em>$</em>hare</div>
+  <div id="todayBadge"></div>
+</header>
+
+<div class="month-tabs" id="monthTabs"></div>
+
+<!-- Target Banner -->
+<div class="target-banner">
+  <div class="target-top">
+    <div class="target-label">Monthly Target</div>
+    <div style="display:flex;gap:8px">
+      <button class="target-edit-btn" onclick="openHistoryEdit()">📅 History</button>
+      <button class="target-edit-btn" onclick="openTargetEdit()">Edit</button>
+    </div>
+  </div>
+  <div class="target-val" id="targetVal">$0</div>
+  <div class="prog-labels"><span id="progLeft">$0 earned + booked</span><span id="progPct">0%</span></div>
+  <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-label">Uber Earned</div>
+      <div class="stat-val" id="statUber" style="color:var(--uber)">$0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Private Done</div>
+      <div class="stat-val" id="statDone" style="color:var(--private-done)">$0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Private Booked</div>
+      <div class="stat-val" id="statBooked" style="color:var(--private-booked)">$0</div>
+    </div>
+  </div>
+  <div class="avg-needed">
+    <div class="avg-left">
+      <div class="avg-label">Avg needed per Uber day</div>
+      <div class="avg-val" id="avgVal">$0</div>
+      <div class="avg-sub" id="avgSub">to hit target</div>
+    </div>
+    <div class="avg-days">
+      <div class="avg-days-num" id="avgDaysNum">0</div>
+      <div class="avg-days-label">days left</div>
+    </div>
+  </div>
+  <div id="forecastRow" style="display:none;margin-top:10px;background:rgba(129,140,248,.07);border:1px solid rgba(129,140,248,.2);border-radius:10px;padding:10px 12px;">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px;">📅 Forecast (based on last year)</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <div>
+        <div style="font-size:11px;color:var(--muted)">Est. additional private</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:var(--private-booked)" id="forecastAmt">$0</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:11px;color:var(--muted)">Projected gap</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:var(--text)" id="projGap">$0</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--muted)">Adj. avg/day</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:var(--uber)" id="projAvg">$0</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="dot" style="background:var(--uber)"></div>Uber</div>
+  <div class="legend-item"><div class="dot" style="background:var(--private-booked)"></div>Booked</div>
+  <div class="legend-item"><div class="dot" style="background:var(--private-done)"></div>Completed</div>
+  <button onclick="openDataManager()" style="margin-left:auto;font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;cursor:pointer;font-family:Inter,sans-serif;">⬆︎ Data</button>
+</div>
+
+<div class="sec">
+  Daily Log
+  <span class="sec-note">Tap checkbox to toggle workday</span>
+</div>
+<div class="day-list" id="dayList"></div>
+
+<!-- FABs -->
+<div class="fabs">
+  <button class="fab fab-private" onclick="openAddPrivate()"><span class="fab-icon">🚘</span> Book Private</button>
+  <button class="fab fab-uber" onclick="openAddUber()"><span class="fab-icon">⚡</span> Log Uber</button>
+</div>
+
+<!-- Target Edit Sheet -->
+<div class="sheet-overlay" id="targetSheet">
+  <div class="sheet">
+    <div class="sheet-title">Set Monthly Target</div>
+    <div class="field">
+      <div class="field-label">Target earnings for <span id="targetMonthLabel"></span></div>
+      <input type="number" class="target-input-big" id="targetInput" placeholder="6500" min="0" step="100">
+    </div>
+    <div class="sheet-btns">
+      <button class="btn btn-cancel" onclick="closeAll()">Cancel</button>
+      <button class="btn btn-save" onclick="saveTarget()">Set Target</button>
+    </div>
+  </div>
+</div>
+
+<!-- Uber Log Sheet -->
+<div class="sheet-overlay" id="uberSheet">
+  <div class="sheet">
+    <div class="sheet-title">Log Uber Earnings</div>
+    <div class="date-row">
+      <select class="date-select" id="uberMonth"></select>
+      <select class="date-select" id="uberDay" style="flex:0;width:80px"></select>
+    </div>
+    <div class="field">
+      <div class="field-label"><span class="dot" style="background:var(--uber)"></span>Earnings ($)</div>
+      <input type="number" class="field-input" id="uberAmt" placeholder="0.00" min="0" step="0.01">
+    </div>
+    <div class="sheet-btns">
+      <button class="btn btn-cancel" onclick="closeAll()">Cancel</button>
+      <button class="btn btn-save" onclick="saveUber()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Private Book Sheet -->
+<div class="sheet-overlay" id="privateSheet">
+  <div class="sheet">
+    <div class="sheet-title" id="privateSheetTitle">Book Private Ride</div>
+    <div class="date-row">
+      <select class="date-select" id="privateMonth"></select>
+      <select class="date-select" id="privateDay" style="flex:0;width:80px"></select>
+    </div>
+    <div class="field">
+      <div class="field-label"><span class="dot" style="background:var(--private-booked)"></span>Minimum Fare ($)</div>
+      <input type="number" class="field-input" id="privateAmt" placeholder="0.00" min="0" step="1">
+    </div>
+    <div class="sheet-btns" id="privateSheetBtns">
+      <button class="btn btn-cancel" onclick="closeAll()">Cancel</button>
+      <button class="btn btn-save-private" onclick="savePrivate()">Book</button>
+    </div>
+  </div>
+</div>
+
+<!-- Complete Ride Sheet -->
+<div class="sheet-overlay" id="completeSheet">
+  <div class="sheet">
+    <div class="sheet-title" id="completeTitle">Complete Ride</div>
+    <div class="complete-box">
+      <div class="complete-box-title">Add tip? (optional)</div>
+      <input type="number" class="field-input" id="tipAmt" placeholder="0" min="0" step="1">
+    </div>
+    <div class="sheet-btns">
+      <button class="btn btn-cancel" onclick="closeAll()">Cancel</button>
+      <button class="btn btn-del" onclick="deleteEntryCtx()">Delete</button>
+      <button class="btn btn-complete" onclick="completeRide()">Mark Complete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Day Detail Sheet -->
+<div class="sheet-overlay" id="daySheet">
+  <div class="sheet">
+    <div class="sheet-title" id="daySheetTitle">Day Detail</div>
+    <div class="entry-detail" id="entryDetail"></div>
+    <div class="sheet-btns">
+      <button class="btn btn-cancel" onclick="closeAll()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- History Sheet -->
+<div class="sheet-overlay" id="historySheet">
+  <div class="sheet">
+    <div class="sheet-title">Private Ride History <small>Last year per month</small></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Enter your total private ride earnings for each month last year. Used to forecast remaining rides this month.</div>
+    <div id="historyRows" style="display:flex;flex-direction:column;gap:8px;max-height:55vh;overflow-y:auto;padding-right:4px;margin-bottom:16px;"></div>
+    <div class="sheet-btns">
+      <button class="btn btn-cancel" onclick="closeAll()">Cancel</button>
+      <button class="btn btn-save" onclick="saveHistory()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Data Manager Sheet -->
+<div class="sheet-overlay" id="dataSheet">
+  <div class="sheet">
+    <div class="sheet-title">Export / Import Data</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Copy your data to transfer it to another device or browser.</div>
+    
+    <div class="field">
+      <div class="field-label">Your saved data</div>
+      <textarea id="dataExport" style="width:100%;height:120px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:11px;font-family:'JetBrains Mono',monospace;resize:none;outline:none;" readonly></textarea>
+    </div>
+    <button class="btn btn-save" onclick="copyData()" style="margin-bottom:14px;">Copy to Clipboard</button>
+    
+    <div class="field">
+      <div class="field-label">Import data (paste here)</div>
+      <textarea id="dataImport" style="width:100%;height:80px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:11px;font-family:'JetBrains Mono',monospace;resize:none;outline:none;" placeholder="Paste exported data here..."></textarea>
+    </div>
+    <div class="sheet-btns">
+      <button class="btn btn-cancel" onclick="closeAll()">Cancel</button>
+      <button class="btn btn-save" onclick="importData()">Import</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────────────────
+const MONTHS = ['July','August','September','October','November','December',
+                'January','February','March','April','May','June'];
+const MONTH_DAYS = { July:31,August:31,September:30,October:31,November:30,December:31,January:31,February:28,March:31,April:30,May:31,June:30 };
+const MONTH_NUM  = { January:0,February:1,March:2,April:3,May:4,June:5,July:6,August:7,September:8,October:9,November:10,December:11 };
+const MONTH_YEAR = { July:2026,August:2026,September:2026,October:2026,November:2026,December:2026,January:2027,February:2027,March:2027,April:2027,May:2027,June:2027 };
+
+const STORE = 'rideshare_v3';
+let data = {};       // data[month][day] = [{type,amount,status,tip?}]
+let targets = {};    // targets[month] = number
+let workdays = {};   // workdays[month][day] = true/false
+let activeMonth = 'July';
+let editCtx = null;
+let history = {}; // history[month] = last year's private total
+
+// ── Persist ───────────────────────────────────────────────────────────────────
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE);
+    if (raw) {
+      const s = JSON.parse(raw);
+      data = s.data||{};
+      targets = s.targets||{};
+      history = s.history||{};
+      if (s.ywVersion !== '2026') {
+        workdays = {};
+      } else {
+        workdays = s.workdays||{};
+      }
+    }
+  } catch(e) {}
+}
+function save() {
+  localStorage.setItem(STORE, JSON.stringify({data, targets, workdays, history, ywVersion:'2026'}));
+}
+
+function ensureDay(month, day) {
+  if (!data[month]) data[month] = {};
+  if (!data[month][day]) data[month][day] = [];
+}
+function getEntries(month, day) { return (data[month]&&data[month][day]) ? data[month][day] : []; }
+
+// workdays: default = all weekdays
+function isWorkday(month, day) {
+  if (!workdays[month]) workdays[month] = {};
+  if (workdays[month][day] === undefined) {
+    // default: weekdays = checked, weekends = unchecked
+    workdays[month][day] = !isWeekendDay(month, day);
+  }
+  return workdays[month][day];
+}
+function toggleWorkday(month, day) {
+  if (!workdays[month]) workdays[month] = {};
+  workdays[month][day] = !isWorkday(month, day);
+  save(); renderDayList(); renderBanner();
+}
+
+// ── Date helpers ──────────────────────────────────────────────────────────────
+function getToday() {
+  const n = new Date();
+  return { month: n.toLocaleString('en-US',{month:'long'}), day: n.getDate(), year: n.getFullYear() };
+}
+function getDayName(month, day) {
+  return new Date(MONTH_YEAR[month], MONTH_NUM[month], day).toLocaleDateString('en-US',{weekday:'short'});
+}
+function isWeekendDay(month, day) { return ['Sat','Sun'].includes(getDayName(month, day)); }
+function isFutureDay(month, day) {
+  const thisDate = new Date(MONTH_YEAR[month], MONTH_NUM[month], day);
+  const now = new Date(); now.setHours(0,0,0,0);
+  return thisDate > now;
+}
+function isPastDay(month, day) {
+  const thisDate = new Date(MONTH_YEAR[month], MONTH_NUM[month], day);
+  const now = new Date(); now.setHours(0,0,0,0);
+  return thisDate < now;
+}
+
+// ── Format ────────────────────────────────────────────────────────────────────
+function fmt(n)  { return '$' + (n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtS(n) { return '$' + Math.round(n||0).toLocaleString('en-US'); }
+
+// ── Totals ────────────────────────────────────────────────────────────────────
+function monthTotals(month) {
+  let uber=0, privateBooked=0, privateDone=0;
+  for (let d=1; d<=MONTH_DAYS[month]; d++) {
+    getEntries(month, d).forEach(e => {
+      if (e.type==='uber') uber += e.amount||0;
+      else if (e.type==='private') {
+        if (e.status==='done') privateDone += (e.amount||0)+(e.tip||0);
+        else privateBooked += e.amount||0;
+      }
+    });
+  }
+  return { uber, privateBooked, privateDone, total: uber+privateDone };
+}
+
+function remainingUberDays(month) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  let count = 0;
+  for (let d=1; d<=MONTH_DAYS[month]; d++) {
+    const thisDate = new Date(MONTH_YEAR[month], MONTH_NUM[month], d);
+    if (isWorkday(month, d) && thisDate > now) count++;
+  }
+  return count;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+  renderTabs();
+  renderBanner();
+  renderDayList();
+  const td = getToday();
+  document.getElementById('todayBadge').textContent = td.month.slice(0,3)+' '+td.day;
+}
+
+function renderTabs() {
+  document.getElementById('monthTabs').innerHTML = MONTHS.map(m =>
+    `<button class="tab${m===activeMonth?' active':''}" onclick="setMonth('${m}')">${m}</button>`
+  ).join('');
+}
+
+function renderBanner() {
+  const target = targets[activeMonth] || 0;
+  const { uber, privateBooked, privateDone } = monthTotals(activeMonth);
+  const totalProgress = uber + privateDone + privateBooked; // booked counts toward progress
+  const earned = uber + privateDone; // actually in pocket / confirmed done
+  const gap = Math.max(0, target - totalProgress);
+  const daysLeft = remainingUberDays(activeMonth);
+  const avgNeeded = daysLeft > 0 ? gap / daysLeft : 0;
+  const pct = target > 0 ? Math.min(100, Math.round((totalProgress / target) * 100)) : 0;
+  const progColor = pct >= 100 ? 'var(--private-done)' : pct >= 65 ? 'var(--private-booked)' : 'var(--uber)';
+
+  document.getElementById('targetVal').textContent = target > 0 ? fmtS(target) : 'Not set';
+  document.getElementById('progLeft').textContent = `${fmtS(totalProgress)} earned + booked`;
+  document.getElementById('progPct').textContent = target > 0 ? pct+'%' : '—';
+  document.getElementById('progFill').style.width = pct+'%';
+  document.getElementById('progFill').style.background = progColor;
+  document.getElementById('statUber').textContent = fmtS(uber);
+  document.getElementById('statDone').textContent = fmtS(privateDone);
+  document.getElementById('statBooked').textContent = fmtS(privateBooked);
+
+  // Forecast: historical private total - already booked/done this month
+  const histPrivate = history[activeMonth] || 0;
+  const alreadyCounted = privateDone + privateBooked;
+  const forecastAdditional = Math.max(0, histPrivate - alreadyCounted);
+  const projectedGap = Math.max(0, gap - forecastAdditional);
+  const projAvgNeeded = daysLeft > 0 ? projectedGap / daysLeft : 0;
+  const hasForecast = histPrivate > 0;
+
+  // Update forecast row
+  const forecastEl = document.getElementById('forecastRow');
+  if (hasForecast && gap > 0) {
+    forecastEl.style.display = 'block';
+    document.getElementById('forecastAmt').textContent = fmtS(forecastAdditional);
+    document.getElementById('projGap').textContent = fmtS(projectedGap);
+    document.getElementById('projAvg').textContent = daysLeft > 0 ? fmtS(projAvgNeeded)+'/day' : '—';
+  } else {
+    forecastEl.style.display = 'none';
+  }
+
+  if (target === 0) {
+    document.getElementById('avgVal').textContent = '—';
+    document.getElementById('avgSub').textContent = 'Set a target above';
+    document.getElementById('avgDaysNum').textContent = daysLeft;
+  } else if (gap <= 0) {
+    document.getElementById('avgVal').textContent = '✓ Done';
+    document.getElementById('avgVal').style.color = 'var(--private-done)';
+    document.getElementById('avgSub').textContent = 'Target reached!';
+    document.getElementById('avgDaysNum').textContent = daysLeft;
+  } else if (daysLeft === 0) {
+    document.getElementById('avgVal').textContent = '—';
+    document.getElementById('avgVal').style.color = 'var(--danger)';
+    document.getElementById('avgSub').textContent = 'No workdays left';
+    document.getElementById('avgDaysNum').textContent = '0';
+  } else {
+    document.getElementById('avgVal').textContent = fmtS(avgNeeded);
+    document.getElementById('avgVal').style.color = avgNeeded > 500 ? 'var(--warning)' : 'var(--text)';
+    document.getElementById('avgSub').textContent = `${fmtS(gap)} gap remaining`;
+    document.getElementById('avgDaysNum').textContent = daysLeft;
+  }
+}
+
+function renderDayList() {
+  const days = MONTH_DAYS[activeMonth];
+  const today = getToday();
+  let html = '';
+  for (let d=1; d<=days; d++) {
+    const entries = getEntries(activeMonth, d);
+    const wday = getDayName(activeMonth, d);
+    const wknd = isWeekendDay(activeMonth, d);
+    const isToday = activeMonth === today.month && d === today.day;
+    const isPast = isPastDay(activeMonth, d);
+    const checked = isWorkday(activeMonth, d);
+    const hasEntries = entries.length > 0;
+
+    const dayTotal = entries.reduce((s,e) => {
+      if (e.type==='uber') return s+(e.amount||0);
+      if (e.type==='private'&&e.status==='done') return s+(e.amount||0)+(e.tip||0);
+      return s;
+    }, 0);
+
+    let pillsHtml = entries.map(e => {
+      if (e.type==='uber') return `<div class="entry-pill pill-uber"><span class="dot" style="background:var(--uber)"></span>${fmtS(e.amount)}</div>`;
+      if (e.type==='private'&&e.status==='booked') return `<div class="entry-pill pill-booked"><span class="dot" style="background:var(--private-booked)"></span>${fmtS(e.amount)}</div>`;
+      if (e.type==='private'&&e.status==='done') { const t=(e.tip||0)>0?` +${fmtS(e.tip)}`:''; return `<div class="entry-pill pill-done"><span class="dot" style="background:var(--private-done)"></span>${fmtS(e.amount)}${t} ✓</div>`; }
+      return '';
+    }).join('');
+    if (!hasEntries) pillsHtml = `<span style="font-size:12px;color:var(--muted)">—</span>`;
+
+    const rowClass = ['day-row',
+      hasEntries?'has-entries':'',
+      isToday?'is-today':'',
+      isPast&&!isToday?'is-past':'',
+      checked&&!wknd?'workday-checked':'',
+      wknd?'weekend-row':''
+    ].filter(Boolean).join(' ');
+
+    const onclick = hasEntries ? `onclick="openDayDetail('${activeMonth}',${d})"` : '';
+    // Past days always appear unchecked visually (can't work them anymore)
+    const checkClass = wknd ? 'check-box weekend-check' : (checked && !isPast && !isToday) ? 'check-box checked' : (wknd ? 'check-box weekend-check' : 'check-box');
+
+    html += `
+      <div class="${rowClass}" ${onclick}>
+        <div class="d-check" onclick="event.stopPropagation();toggleWorkday('${activeMonth}',${d})">
+          <div class="${checkClass}"></div>
+        </div>
+        <div class="d-num${isToday?' today':''}">${String(d).padStart(2,'0')}</div>
+        <div class="d-wday${wknd?' weekend':''}">${wday}</div>
+        <div class="d-entries">${pillsHtml}</div>
+        <div class="d-total${dayTotal>0?' has-val':''}">${dayTotal>0?fmtS(dayTotal):''}</div>
+      </div>`;
+  }
+  document.getElementById('dayList').innerHTML = html;
+}
+
+// ── Day detail ────────────────────────────────────────────────────────────────
+function openDayDetail(month, day) {
+  const entries = getEntries(month, day);
+  document.getElementById('daySheetTitle').innerHTML = `${month} ${day} <small>${getDayName(month,day)}</small>`;
+  let html = '';
+  entries.forEach((e, idx) => {
+    const isUber = e.type==='uber';
+    const isDone = e.type==='private'&&e.status==='done';
+    const isBooked = e.type==='private'&&e.status==='booked';
+    const colorVar = isUber?'var(--uber)':isDone?'var(--private-done)':'var(--private-booked)';
+    const typeLabel = isUber?'Uber':isDone?'Private · Completed':'Private · Booked';
+    const totalAmt = isDone?(e.amount||0)+(e.tip||0):(e.amount||0);
+    const tipNote = (e.tip||0)>0?` (incl. ${fmtS(e.tip)} tip)`:'';
+    const actions = isBooked
+      ? `<button class="mini-btn mini-complete" onclick="openComplete('${month}',${day},${idx})">Mark Complete</button>
+         <button class="mini-btn mini-edit" onclick="openEditEntry('${month}',${day},${idx})">Edit</button>
+         <button class="mini-btn mini-del" onclick="deleteEntryDirect('${month}',${day},${idx})">Delete</button>`
+      : `<button class="mini-btn mini-edit" onclick="openEditEntry('${month}',${day},${idx})">Edit</button>
+         <button class="mini-btn mini-del" onclick="deleteEntryDirect('${month}',${day},${idx})">Delete</button>`;
+    html += `<div class="detail-item"><div class="detail-left">
+      <div class="detail-type" style="color:${colorVar}">${typeLabel}</div>
+      <div class="detail-amount" style="color:${colorVar}">${fmt(totalAmt)}${tipNote}</div>
+      <div class="detail-actions">${actions}</div>
+    </div></div>`;
+  });
+  document.getElementById('entryDetail').innerHTML = html;
+  document.getElementById('daySheet').classList.add('open');
+}
+
+// ── Complete ride ─────────────────────────────────────────────────────────────
+function openComplete(month, day, idx) {
+  editCtx = {month, day, idx};
+  const e = data[month][day][idx];
+  document.getElementById('completeTitle').innerHTML = `Complete Ride <small>${month} ${day} · ${fmtS(e.amount)} min</small>`;
+  document.getElementById('tipAmt').value = '';
+  closeAll(false);
+  document.getElementById('completeSheet').classList.add('open');
+}
+function completeRide() {
+  const {month,day,idx} = editCtx;
+  const tip = parseFloat(document.getElementById('tipAmt').value)||0;
+  data[month][day][idx].status = 'done';
+  data[month][day][idx].tip = tip;
+  save(); closeAll(); render();
+  showToast('Ride completed ✓');
+}
+
+// ── Target ────────────────────────────────────────────────────────────────────
+function openTargetEdit() {
+  document.getElementById('targetMonthLabel').textContent = activeMonth;
+  document.getElementById('targetInput').value = targets[activeMonth] || '';
+  document.getElementById('targetSheet').classList.add('open');
+  setTimeout(()=>document.getElementById('targetInput').focus(),200);
+}
+function saveTarget() {
+  const val = parseFloat(document.getElementById('targetInput').value)||0;
+  targets[activeMonth] = val;
+  save(); closeAll(); renderBanner();
+  showToast('Target set for '+activeMonth);
+}
+
+function openHistoryEdit() {
+  document.getElementById('historySheet').classList.add('open');
+  renderHistorySheet();
+}
+function renderHistorySheet() {
+  const rows = MONTHS.map(m => `
+    <div class="hist-row">
+      <div class="hist-month">${m}</div>
+      <div class="hist-input-wrap">
+        <span class="hist-dollar">$</span>
+        <input type="number" class="hist-input" id="hist_${m}"
+          value="${history[m]||''}" placeholder="0" min="0" step="1">
+      </div>
+    </div>`).join('');
+  document.getElementById('historyRows').innerHTML = rows;
+}
+function saveHistory() {
+  MONTHS.forEach(m => {
+    const val = parseFloat(document.getElementById('hist_'+m).value)||0;
+    if (val > 0) history[m] = val; else delete history[m];
+  });
+  save(); closeAll(); renderBanner();
+  showToast('History saved');
+}
+
+// ── Add Uber ──────────────────────────────────────────────────────────────────
+function openAddUber() {
+  editCtx = null;
+  const td = getToday();
+  populateMonthDay('uberMonth','uberDay',td.month,td.day);
+  document.getElementById('uberAmt').value = '';
+  document.getElementById('uberSheet').classList.add('open');
+  setTimeout(()=>document.getElementById('uberAmt').focus(),200);
+}
+function saveUber() {
+  const month = document.getElementById('uberMonth').value;
+  const day   = parseInt(document.getElementById('uberDay').value);
+  const amt   = parseFloat(document.getElementById('uberAmt').value);
+  if (!amt||amt<=0) { showToast('Enter an amount'); return; }
+  if (editCtx) {
+    if (editCtx.month!==month||editCtx.day!==day) {
+      const entry = data[editCtx.month][editCtx.day].splice(editCtx.idx,1)[0];
+      entry.amount = amt;
+      ensureDay(month,day); data[month][day].push(entry);
+    } else { data[editCtx.month][editCtx.day][editCtx.idx].amount = amt; }
+  } else {
+    ensureDay(month,day); data[month][day].push({type:'uber',amount:amt,status:'done'});
+  }
+  save(); closeAll(); render();
+  showToast('Uber earnings saved');
+}
+
+// ── Add Private ───────────────────────────────────────────────────────────────
+function openAddPrivate() {
+  editCtx = null;
+  const td = getToday();
+  populateMonthDay('privateMonth','privateDay',td.month,td.day);
+  document.getElementById('privateAmt').value = '';
+  document.getElementById('privateSheetTitle').textContent = 'Book Private Ride';
+  document.getElementById('privateSheetBtns').innerHTML = `
+    <button class="btn btn-cancel" onclick="closeAll()">Cancel</button>
+    <button class="btn btn-save-private" onclick="savePrivate()">Book</button>`;
+  document.getElementById('privateSheet').classList.add('open');
+  setTimeout(()=>document.getElementById('privateAmt').focus(),200);
+}
+function savePrivate() {
+  const month = document.getElementById('privateMonth').value;
+  const day   = parseInt(document.getElementById('privateDay').value);
+  const amt   = parseFloat(document.getElementById('privateAmt').value);
+  if (!amt||amt<=0) { showToast('Enter a fare amount'); return; }
+  if (editCtx) {
+    const e = data[editCtx.month][editCtx.day][editCtx.idx];
+    if (editCtx.month!==month||editCtx.day!==day) {
+      data[editCtx.month][editCtx.day].splice(editCtx.idx,1);
+      ensureDay(month,day); data[month][day].push({...e,amount:amt});
+    } else { e.amount = amt; }
+  } else {
+    ensureDay(month,day); data[month][day].push({type:'private',amount:amt,status:'booked'});
+  }
+  save(); closeAll(); render();
+  showToast(editCtx?'Ride updated':'Ride booked');
+}
+
+// ── Edit ──────────────────────────────────────────────────────────────────────
+function openEditEntry(month, day, idx) {
+  const e = data[month][day][idx];
+  editCtx = {month,day,idx};
+  closeAll(false);
+  if (e.type==='uber') {
+    populateMonthDay('uberMonth','uberDay',month,day);
+    document.getElementById('uberAmt').value = e.amount||'';
+    document.getElementById('uberSheet').classList.add('open');
+  } else {
+    populateMonthDay('privateMonth','privateDay',month,day);
+    document.getElementById('privateAmt').value = e.amount||'';
+    document.getElementById('privateSheetTitle').textContent = 'Edit Private Ride';
+    document.getElementById('privateSheetBtns').innerHTML = `
+      <button class="btn btn-cancel" onclick="closeAll()">Cancel</button>
+      <button class="btn btn-del" onclick="deleteEntryCtx()">Delete</button>
+      <button class="btn btn-save-private" onclick="savePrivate()">Save</button>`;
+    document.getElementById('privateSheet').classList.add('open');
+  }
+}
+function deleteEntryCtx() { if(editCtx) deleteEntryDirect(editCtx.month,editCtx.day,editCtx.idx); }
+function deleteEntryDirect(month,day,idx) {
+  data[month][day].splice(idx,1);
+  save(); closeAll(); render();
+  showToast('Entry deleted');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function populateMonthDay(mId,dId,selMonth,selDay) {
+  const mSel = document.getElementById(mId);
+  mSel.innerHTML = MONTHS.map(m=>`<option value="${m}"${m===selMonth?' selected':''}>${m}</option>`).join('');
+  mSel.onchange = ()=>updateDays(mId,dId);
+  updateDays(mId,dId,selDay);
+}
+function updateDays(mId,dId,selDay) {
+  const month = document.getElementById(mId).value;
+  const days = MONTH_DAYS[month];
+  const dSel = document.getElementById(dId);
+  const current = selDay||parseInt(dSel.value)||1;
+  dSel.innerHTML = Array.from({length:days},(_,i)=>i+1).map(d=>`<option value="${d}"${d===current?' selected':''}>${d}</option>`).join('');
+}
+function setMonth(m) { activeMonth = m; render(); }
+function closeAll(doRender) { document.querySelectorAll('.sheet-overlay').forEach(el=>el.classList.remove('open')); }
+document.querySelectorAll('.sheet-overlay').forEach(el=>{ el.addEventListener('click',e=>{ if(e.target===el) closeAll(); }); });
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ── Data export/import ───────────────────────────────────────────────────────
+function openDataManager() {
+  const raw = localStorage.getItem(STORE) || '{}';
+  document.getElementById('dataExport').value = raw;
+  document.getElementById('dataImport').value = '';
+  document.getElementById('dataSheet').classList.add('open');
+}
+function copyData() {
+  const el = document.getElementById('dataExport');
+  el.select();
+  document.execCommand('copy');
+  showToast('Copied to clipboard!');
+}
+function importData() {
+  const raw = document.getElementById('dataImport').value.trim();
+  if (!raw) { showToast('Nothing to import'); return; }
+  try {
+    const parsed = JSON.parse(raw);
+    localStorage.setItem(STORE, JSON.stringify(parsed));
+    load(); closeAll(); render();
+    showToast('Data imported successfully!');
+  } catch(e) {
+    showToast('Invalid data — check and try again');
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+load();
+const curMonth = new Date().toLocaleString('en-US',{month:'long'});
+if (MONTHS.includes(curMonth)) activeMonth = curMonth;
+render();
+</script>
+</body>
+</html>
