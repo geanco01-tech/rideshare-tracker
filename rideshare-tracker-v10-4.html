@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Rideshare Tracker</title>
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a24;
+    --surface2: #22222f;
+    --border: #2e2e3e;
+    --accent: #6c63ff;
+    --accent2: #00d4aa;
+    --danger: #ff4f4f;
+    --warn: #ffaa00;
+    --text: #f0f0f8;
+    --muted: #888899;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 80px;
+    font-size: 15px;
+  }
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .app-title { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+  .app-title span { color: var(--accent); }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .icon-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .month-label { font-size: 13px; color: var(--muted); }
+
+  /* PROGRESS BANNER */
+  .banner {
+    background: var(--surface);
+    margin: 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 14px;
+  }
+  .banner-target {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+  }
+  .target-amount { font-size: 28px; font-weight: 800; color: var(--accent2); }
+  .target-label { font-size: 12px; color: var(--muted); }
+  .progress-bar-wrap {
+    background: var(--surface2);
+    border-radius: 99px;
+    height: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.4s ease;
+  }
+  .banner-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .stat-card {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .stat-val { font-size: 17px; font-weight: 700; }
+  .stat-val.uber { color: #60a5fa; }
+  .stat-val.priv-done { color: var(--accent2); }
+  .stat-val.priv-booked { color: var(--warn); }
+  .stat-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .daily-avg-row {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .daily-avg-val { font-size: 20px; font-weight: 800; color: var(--warn); }
+  .daily-avg-meta { font-size: 11px; color: var(--muted); text-align: right; line-height: 1.5; }
+
+  /* FORECAST */
+  .forecast-card {
+    background: var(--surface);
+    margin: 0 12px 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+  }
+  .forecast-title {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .forecast-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .forecast-item { text-align: center; }
+  .forecast-val { font-size: 15px; font-weight: 700; color: var(--accent); }
+  .forecast-lbl { font-size: 10px; color: var(--muted); }
+
+  /* ACTION BUTTONS */
+  .action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 0 12px 12px;
+  }
+  .action-btn {
+    border: none;
+    border-radius: var(--radius);
+    padding: 14px 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .action-btn .btn-icon { font-size: 22px; }
+  .btn-uber { background: linear-gradient(135deg, #1d4ed8, #3b82f6); color: #fff; }
+  .btn-private { background: linear-gradient(135deg, #065f46, #10b981); color: #fff; }
+
+  /* SECTION */
+  .section {
+    margin: 0 12px 12px;
+  }
+  .section-header {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .section-header button {
+    font-size: 11px;
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  /* WORKDAY GRID */
+  .workday-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .day-cell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 2px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .day-cell.active { background: var(--surface2); border-color: var(--accent); }
+  .day-cell.inactive { opacity: 0.35; }
+  .day-cell.has-uber { border-color: #3b82f6; }
+  .day-cell.has-private { border-color: var(--accent2); }
+  .day-num { font-size: 13px; font-weight: 600; }
+  .day-name { font-size: 9px; color: var(--muted); }
+  .day-dot { width: 5px; height: 5px; border-radius: 50%; margin: 2px auto 0; }
+  .day-dot.uber { background: #3b82f6; }
+  .day-dot.priv { background: var(--accent2); }
+
+  /* RIDE LISTS */
+  .ride-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .ride-item.booked { border-left: 3px solid var(--warn); }
+  .ride-item.completed { border-left: 3px solid var(--accent2); }
+  .ride-left { display: flex; flex-direction: column; gap: 2px; }
+  .ride-date { font-size: 12px; color: var(--muted); }
+  .ride-amount { font-size: 18px; font-weight: 700; }
+  .ride-note { font-size: 11px; color: var(--muted); }
+  .ride-right { display: flex; gap: 8px; align-items: center; }
+  .status-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 99px;
+    text-transform: uppercase;
+  }
+  .badge-booked { background: rgba(255,170,0,0.15); color: var(--warn); }
+  .badge-done { background: rgba(0,212,170,0.15); color: var(--accent2); }
+  .ride-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  /* MODALS */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius) var(--radius) 0 0;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 20px 16px 32px;
+    width: 100%;
+    max-width: 480px;
+    animation: slideUp 0.2s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: block; font-weight: 600; }
+  .form-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    font-size: 16px;
+    outline: none;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  .modal-actions.triple { grid-template-columns: 1fr 1fr 1fr; }
+  .btn {
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-cancel { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-success { background: var(--accent2); color: #111; }
+  .btn-danger { background: var(--danger); color: #fff; }
+
+  /* GIST SETUP */
+  .gist-banner {
+    background: rgba(108,99,255,0.12);
+    border: 1px solid rgba(108,99,255,0.3);
+    border-radius: var(--radius);
+    margin: 12px;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .gist-banner-text { font-size: 13px; color: var(--text); flex: 1; }
+  .gist-banner-text strong { color: var(--accent); }
+  .gist-sync-status {
+    font-size: 11px;
+    margin: 0 12px 8px;
+    color: var(--muted);
+    text-align: right;
+  }
+  .gist-sync-status.ok { color: var(--accent2); }
+  .gist-sync-status.err { color: var(--danger); }
+
+  /* DATA MODAL */
+  .data-textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    font-size: 12px;
+    font-family: monospace;
+    height: 120px;
+    resize: none;
+    outline: none;
+  }
+
+  /* HISTORY */
+  .history-month {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .history-month-name { font-size: 14px; font-weight: 600; }
+  .history-month-amt { font-size: 14px; font-weight: 700; color: var(--accent2); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 99px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 150;
+  }
+  .nav-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 4px 12px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-size: 10px;
+    gap: 3px;
+    transition: color 0.15s;
+  }
+  .nav-tab.active { color: var(--accent); }
+  .nav-tab .nav-icon { font-size: 20px; }
+
+  /* TABS CONTENT */
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* SETTINGS */
+  .settings-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .settings-label { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .settings-desc { font-size: 12px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+  .token-display {
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    background: var(--surface2);
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    word-break: break-all;
+    margin-bottom: 8px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 24px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div class="app-title">Ride<span>$</span>hare</div>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="openModal('dataModal')">⬆︎ Data</button>
+      <button class="icon-btn" onclick="openModal('targetModal')">🎯</button>
+    </div>
+  </div>
+  <div class="month-label" id="monthLabel"></div>
+</div>
+
+<!-- GIST SYNC STATUS -->
+<div id="gistBanner" class="gist-banner" style="display:none">
+  <div class="gist-banner-text">☁️ <strong>Cloud backup off.</strong> Your data only lives in this browser.</div>
+  <button class="icon-btn" onclick="showTab('settings')">Set up</button>
+</div>
+<div id="syncStatus" class="gist-sync-status" style="display:none"></div>
+
+<!-- TABS CONTENT -->
+<div id="tabDashboard" class="tab-pane active">
+  <!-- BANNER -->
+  <div class="banner">
+    <div class="banner-target">
+      <div>
+        <div class="target-amount" id="bannerTotal">$0</div>
+        <div class="target-label">earned + booked</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:22px;font-weight:800" id="bannerPct">0%</div>
+        <div class="target-label">of <span id="bannerTargetAmt">$0</span> goal</div>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="banner-stats">
+      <div class="stat-card">
+        <div class="stat-val uber" id="statUber">$0</div>
+        <div class="stat-lbl">Uber Earned</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val priv-done" id="statPrivDone">$0</div>
+        <div class="stat-lbl">Private Done</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val priv-booked" id="statPrivBooked">$0</div>
+        <div class="stat-lbl">Private Booked</div>
+      </div>
+    </div>
+    <div class="daily-avg-row">
+      <div>
+        <div class="daily-avg-val" id="dailyAvgVal">$0</div>
+        <div style="font-size:11px;color:var(--muted)">avg/day needed</div>
+      </div>
+      <div class="daily-avg-meta" id="dailyAvgMeta"></div>
+    </div>
+  </div>
+
+  <!-- FORECAST -->
+  <div class="forecast-card">
+    <div class="forecast-title">
+      📅 Forecast <span style="font-size:11px;font-weight:400;cursor:pointer;color:var(--accent)" onclick="openHistoryModal()">Edit history</span>
+    </div>
+    <div class="forecast-grid">
+      <div class="forecast-item">
+        <div class="forecast-val" id="fcAddl">$0</div>
+        <div class="forecast-lbl">Est. private left</div>
+      </div>
+      <div class="forecast-item">
+        <div class="forecast-val" id="fcGap">$0</div>
+        <div class="forecast-lbl">Proj. gap</div>
+      </div>
+      <div class="forecast-item">
+        <div class="forecast-val" id="fcAdj">$0</div>
+        <div class="forecast-lbl">Adj. avg/day</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTION BUTTONS -->
+  <div class="action-row">
+    <button class="action-btn btn-uber" onclick="openModal('uberModal')">
+      <span class="btn-icon">⚡</span>Log Uber
+    </button>
+    <button class="action-btn btn-private" onclick="openModal('privateModal')">
+      <span class="btn-icon">🚘</span>Book Private
+    </button>
+  </div>
+
+  <!-- WORKDAYS -->
+  <div class="section">
+    <div class="section-header">
+      Daily Log
+      <button onclick="resetWorkdays()">Reset</button>
+    </div>
+    <div class="workday-grid" id="workdayGrid"></div>
+  </div>
+
+  <!-- PRIVATE RIDES -->
+  <div class="section">
+    <div class="section-header">Private Rides</div>
+    <div id="privateList"></div>
+  </div>
+
+  <!-- UBER LOG -->
+  <div class="section">
+    <div class="section-header">Uber Log</div>
+    <div id="uberList"></div>
+  </div>
+</div>
+
+<div id="tabSettings" class="tab-pane">
+  <div style="padding:12px">
+    <div class="section-header" style="margin-bottom:12px">Settings</div>
+
+    <div class="settings-item">
+      <div class="settings-label">☁️ Cloud Backup (GitHub Gist)</div>
+      <div class="settings-desc">Enter a GitHub Personal Access Token with <strong>Gist scope</strong> to automatically back up your data. Your data will survive browser cache clears and work across devices.<br><br>To get a token: github.com → Settings → Developer settings → Personal access tokens → Tokens (classic) → New token → check <strong>gist</strong> → Generate.</div>
+      <div id="tokenDisplay" class="token-display" style="display:none"></div>
+      <div id="gistIdDisplay" style="font-size:11px;color:var(--muted);margin-bottom:8px;display:none">Gist ID: <span id="gistIdVal"></span></div>
+      <div class="form-group">
+        <input class="form-input" id="tokenInput" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1" onclick="saveToken()">Save Token</button>
+        <button class="btn btn-danger" style="flex:1" id="clearTokenBtn" onclick="clearToken()" style="display:none">Clear</button>
+      </div>
+      <div id="tokenStatus" style="font-size:12px;margin-top:8px;color:var(--muted)"></div>
+    </div>
+
+    <div class="settings-item">
+      <div class="settings-label">🔄 Sync Now</div>
+      <div class="settings-desc">Manually push your data to GitHub Gist or pull the latest backup.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <button class="btn btn-primary" onclick="syncToGist()">Push to Cloud</button>
+        <button class="btn btn-cancel" onclick="pullFromGist()">Pull from Cloud</button>
+      </div>
+    </div>
+
+    <div class="settings-item">
+      <div class="settings-label">🗓️ Private Ride History</div>
+      <div class="settings-desc">Last year's monthly private earnings used for forecasting.</div>
+      <button class="btn btn-primary" style="width:100%" onclick="openHistoryModal()">Edit History</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-tab active" id="nav-dashboard" onclick="showTab('dashboard')">
+    <span class="nav-icon">📊</span>Dashboard
+  </button>
+  <button class="nav-tab" id="nav-settings" onclick="showTab('settings')">
+    <span class="nav-icon">⚙️</span>Settings
+  </button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODALS -->
+
+<!-- TARGET MODAL -->
+<div class="modal-overlay" id="targetModal">
+  <div class="modal">
+    <div class="modal-title">Set Monthly Target <button class="modal-close" onclick="closeModal('targetModal')">×</button></div>
+    <div class="form-group">
+      <label class="form-label">Target earnings for <span id="targetMonthLabel"></span></label>
+      <input class="form-input" id="targetInput" type="number" placeholder="e.g. 5000" inputmode="decimal">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal('targetModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTarget()">Set Target</button>
+    </div>
+  </div>
+</div>
+
+<!-- UBER MODAL -->
+<div class="modal-overlay" id="uberModal">
+  <div class="modal">
+    <div class="modal-title">Log Uber Earnings <button class="modal-close" onclick="closeModal('uberModal')">×</button></div>
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input class="form-input" id="uberDate" type="date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Earnings ($)</label>
+      <input class="form-input" id="uberAmount" type="number" placeholder="0.00" inputmode="decimal">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal('uberModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUber()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRIVATE MODAL -->
+<div class="modal-overlay" id="privateModal">
+  <div class="modal">
+    <div class="modal-title">Book Private Ride <button class="modal-close" onclick="closeModal('privateModal')">×</button></div>
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input class="form-input" id="privateDate" type="date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Minimum Fare ($)</label>
+      <input class="form-input" id="privateAmount" type="number" placeholder="0.00" inputmode="decimal">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Note (optional)</label>
+      <input class="form-input" id="privateNote" type="text" placeholder="e.g. airport run">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal('privateModal')">Cancel</button>
+      <button class="btn btn-success" onclick="savePrivate()">Book</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMPLETE RIDE MODAL -->
+<div class="modal-overlay" id="completeModal">
+  <div class="modal">
+    <div class="modal-title">Complete Ride <button class="modal-close" onclick="closeModal('completeModal')">×</button></div>
+    <div class="form-group">
+      <label class="form-label">Final amount ($)</label>
+      <input class="form-input" id="completeAmount" type="number" placeholder="0.00" inputmode="decimal">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tip (optional)</label>
+      <input class="form-input" id="completeTip" type="number" placeholder="0.00" inputmode="decimal">
+    </div>
+    <input type="hidden" id="completeRideId">
+    <div class="modal-actions triple">
+      <button class="btn btn-cancel" onclick="closeModal('completeModal')">Cancel</button>
+      <button class="btn btn-danger" onclick="deleteRide()">Delete</button>
+      <button class="btn btn-success" onclick="markComplete()">Complete</button>
+    </div>
+  </div>
+</div>
+
+<!-- DATA MODAL -->
+<div class="modal-overlay" id="dataModal">
+  <div class="modal">
+    <div class="modal-title">Export / Import <button class="modal-close" onclick="closeModal('dataModal')">×</button></div>
+    <div class="form-group">
+      <label class="form-label">Your saved data</label>
+      <textarea class="data-textarea" id="exportData" readonly></textarea>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:12px" onclick="copyData()">Copy to Clipboard</button>
+    <div class="form-group">
+      <label class="form-label">Import data (paste here)</label>
+      <textarea class="data-textarea" id="importData" placeholder="Paste exported data here..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal('dataModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="importData()">Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal">
+    <div class="modal-title">Private Ride History <button class="modal-close" onclick="closeModal('historyModal')">×</button></div>
+    <div class="settings-desc" style="margin-bottom:12px;font-size:12px;color:var(--muted)">Last year's monthly private earnings for forecasting.</div>
+    <div id="historyInputs"></div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal('historyModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveHistory()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STORAGE KEY — LOCKED PERMANENTLY
+// ============================================================
+const STORAGE_KEY = 'rideshare_v3';
+
+// ============================================================
+// DATA MODEL
+// ============================================================
+function defaultData() {
+  return {
+    target: {},       // { "2025-07": 5000 }
+    rides: [],        // { id, type:"uber"|"private", date, amount, tip, status:"booked"|"completed", note }
+    workdays: {},     // { "2025-07-14": true|false }
+    history: {},      // { "2025-01": 800, ... } last year private per month
+    gistId: null,
+    lastSync: null,
+    ghToken: null
+  };
+}
+
+let data = defaultData();
+// ghToken is now data.ghToken — this alias keeps the rest of the code working
+
+
+// ============================================================
+// PERSISTENCE
+// ============================================================
+const GIST_ID = 'ad733721d4e186b9889de8320e125086';
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) data = Object.assign(defaultData(), JSON.parse(raw));
+  } catch(e) {}
+  if (!data.gistId) data.gistId = GIST_ID;
+  try { localStorage.removeItem('rideshare_gh_token'); } catch(e) {}
+}
+
+async function autoRestore() {
+  // If localStorage is empty, auto-pull from Gist (no token needed - uses public Gist API)
+  const hasData = data.rides.length > 0 || Object.keys(data.target).length > 0;
+  if (!hasData) {
+    try {
+      const res = await fetch('https://api.github.com/gists/' + GIST_ID);
+      if (res.ok) {
+        const j = await res.json();
+        const content = j.files['rideshare-data.json']?.content;
+        if (content) {
+          const saved = data.ghToken;
+          data = Object.assign(defaultData(), JSON.parse(content));
+          data.gistId = GIST_ID;
+          if (!data.ghToken && saved) data.ghToken = saved;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          render();
+          showToast('✅ Data restored from cloud');
+        }
+      }
+    } catch(e) {}
+  }
+}
+
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch(e) {}
+  // Auto-sync to gist after every save
+  if (data.ghToken) syncToGist(true);
+}
+
+// ============================================================
+// GITHUB GIST SYNC
+// ============================================================
+async function syncToGist(silent = false) {
+  if (!data.ghToken) {
+    if (!silent) showToast('No token set. Go to Settings.');
+    return;
+  }
+  const payload = JSON.stringify(data, null, 2);
+  const body = {
+    description: 'Rideshare Tracker Backup',
+    public: false,
+    files: { 'rideshare-data.json': { content: payload } }
+  };
+  try {
+    let res;
+    if (data.gistId) {
+      res = await fetch(`https://api.github.com/gists/${data.gistId}`, {
+        method: 'PATCH',
+        headers: { Authorization: `token ${data.ghToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+    } else {
+      res = await fetch('https://api.github.com/gists', {
+        method: 'POST',
+        headers: { Authorization: `token ${data.ghToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+    }
+    if (res.ok) {
+      const json = await res.json();
+      data.gistId = json.id;
+      data.lastSync = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      updateSyncStatus(true);
+      if (!silent) showToast('✅ Saved to cloud');
+    } else {
+      updateSyncStatus(false, 'Sync failed — check token');
+      if (!silent) showToast('❌ Sync failed');
+    }
+  } catch(e) {
+    updateSyncStatus(false, 'Network error');
+    if (!silent) showToast('❌ Network error');
+  }
+}
+
+async function pullFromGist() {
+  if (!data.ghToken) { showToast('No token set. Go to Settings.'); return; }
+  if (!data.gistId) { showToast('No backup found yet. Push first.'); return; }
+  try {
+    const res = await fetch(`https://api.github.com/gists/${data.gistId}`, {
+      headers: { Authorization: `token ${data.ghToken}` }
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const content = json.files['rideshare-data.json']?.content;
+      if (content) {
+        const savedToken = data.ghToken; // preserve current token
+        data = Object.assign(defaultData(), JSON.parse(content));
+        if (!data.ghToken && savedToken) data.ghToken = savedToken;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        render();
+        showToast('✅ Data restored from cloud');
+      }
+    } else {
+      showToast('❌ Pull failed');
+    }
+  } catch(e) {
+    showToast('❌ Network error');
+  }
+}
+
+function updateSyncStatus(ok, msg) {
+  const el = document.getElementById('syncStatus');
+  if (!data.ghToken) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  if (ok) {
+    const t = data.lastSync ? new Date(data.lastSync).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+    el.textContent = `☁️ Synced ${t}`;
+    el.className = 'gist-sync-status ok';
+  } else {
+    el.textContent = `⚠️ ${msg || 'Sync issue'}`;
+    el.className = 'gist-sync-status err';
+  }
+}
+
+function saveToken() {
+  const val = document.getElementById('tokenInput').value.trim();
+  if (!val) { showToast('Enter a token first'); return; }
+  data.data.ghToken = val;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  document.getElementById('tokenInput').value = '';
+  document.getElementById('tokenStatus').textContent = 'Token saved. Testing connection...';
+  renderSettings();
+  syncToGist();
+}
+
+function clearToken() {
+  if (!confirm('Remove cloud backup token?')) return;
+  data.data.ghToken = null;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  renderSettings();
+  showToast('Token removed');
+}
+
+// ============================================================
+// DATE HELPERS
+// ============================================================
+function today() {
+  return new Date().toISOString().slice(0,10);
+}
+function currentMonthKey() {
+  return today().slice(0,7);
+}
+function fmt(date) {
+  if (!date) return '';
+  const d = new Date(date + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+}
+function fmtMoney(n) {
+  return '$' + Number(n || 0).toFixed(0);
+}
+function getDaysInMonth(ym) {
+  const [y, m] = ym.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+}
+function getDayName(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return ['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()];
+}
+function isWeekday(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00').getDay();
+  return d >= 1 && d <= 5;
+}
+function getMonthDates(ym) {
+  const days = getDaysInMonth(ym);
+  return Array.from({length: days}, (_, i) => {
+    const d = String(i+1).padStart(2,'0');
+    return `${ym}-${d}`;
+  });
+}
+
+// ============================================================
+// COMPUTED STATS
+// ============================================================
+function getStats() {
+  const mk = currentMonthKey();
+  const monthRides = data.rides.filter(r => r.date.startsWith(mk));
+
+  const uberEarned = monthRides
+    .filter(r => r.type === 'uber')
+    .reduce((s, r) => s + Number(r.amount || 0), 0);
+
+  const privDone = monthRides
+    .filter(r => r.type === 'private' && r.status === 'completed')
+    .reduce((s, r) => s + Number(r.amount || 0) + Number(r.tip || 0), 0);
+
+  const privBooked = monthRides
+    .filter(r => r.type === 'private' && r.status === 'booked')
+    .reduce((s, r) => s + Number(r.amount || 0), 0);
+
+  const target = Number(data.target[mk] || 0);
+  const total = uberEarned + privDone + privBooked;
+  const pct = target > 0 ? Math.min(100, (total / target) * 100) : 0;
+  const remaining = Math.max(0, target - total);
+
+  // Future workdays remaining
+  const todayStr = today();
+  const dates = getMonthDates(mk);
+  const futureWorkdays = dates.filter(d => {
+    if (d <= todayStr) return false;
+    const override = data.workdays[d];
+    if (override !== undefined) return override;
+    return isWeekday(d);
+  });
+
+  const dailyAvg = futureWorkdays.length > 0
+    ? remaining / futureWorkdays.length
+    : 0;
+
+  // Forecast
+  const thisMonth = parseInt(mk.split('-')[1]);
+  const lastYearKey = `${parseInt(mk.split('-')[0])-1}-${String(thisMonth).padStart(2,'0')}`;
+  const lastYearTotal = Number(data.history[lastYearKey] || 0);
+  const monthProgress = dates.indexOf(todayStr) >= 0
+    ? (dates.indexOf(todayStr) + 1) / dates.length
+    : 1;
+  const estRemaining = lastYearTotal > 0
+    ? lastYearTotal * (1 - monthProgress)
+    : 0;
+  const projGap = Math.max(0, remaining - estRemaining);
+  const adjAvg = futureWorkdays.length > 0 ? projGap / futureWorkdays.length : 0;
+
+  return {
+    uberEarned, privDone, privBooked, target, total, pct,
+    remaining, dailyAvg, futureWorkdays: futureWorkdays.length,
+    estRemaining, projGap, adjAvg
+  };
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+  renderHeader();
+  renderBanner();
+  renderWorkdays();
+  renderRides();
+  renderSettings();
+  updateGistBanner();
+  updateSyncStatus(!!data.lastSync);
+}
+
+function renderHeader() {
+  const mk = currentMonthKey();
+  const [y, m] = mk.split('-');
+  const name = new Date(parseInt(y), parseInt(m)-1, 1)
+    .toLocaleDateString('en-US', {month:'long', year:'numeric'});
+  document.getElementById('monthLabel').textContent = name;
+  document.getElementById('targetMonthLabel').textContent = name;
+}
+
+function renderBanner() {
+  const s = getStats();
+  document.getElementById('bannerTotal').textContent = fmtMoney(s.total);
+  document.getElementById('bannerPct').textContent = Math.round(s.pct) + '%';
+  document.getElementById('bannerTargetAmt').textContent = fmtMoney(s.target);
+  document.getElementById('progressFill').style.width = s.pct + '%';
+  document.getElementById('statUber').textContent = fmtMoney(s.uberEarned);
+  document.getElementById('statPrivDone').textContent = fmtMoney(s.privDone);
+  document.getElementById('statPrivBooked').textContent = fmtMoney(s.privBooked);
+  document.getElementById('dailyAvgVal').textContent = fmtMoney(s.dailyAvg);
+  document.getElementById('dailyAvgMeta').innerHTML =
+    `to hit target<br>${s.futureWorkdays} days left`;
+  document.getElementById('fcAddl').textContent = fmtMoney(s.estRemaining);
+  document.getElementById('fcGap').textContent = fmtMoney(s.projGap);
+  document.getElementById('fcAdj').textContent = fmtMoney(s.adjAvg);
+}
+
+function renderWorkdays() {
+  const mk = currentMonthKey();
+  const dates = getMonthDates(mk);
+  const todayStr = today();
+  const grid = document.getElementById('workdayGrid');
+  grid.innerHTML = '';
+
+  const monthRides = data.rides.filter(r => r.date.startsWith(mk));
+
+  dates.forEach(d => {
+    const override = data.workdays[d];
+    const active = override !== undefined ? override : isWeekday(d);
+    const hasUber = monthRides.some(r => r.type === 'uber' && r.date === d);
+    const hasPriv = monthRides.some(r => r.type === 'private' && r.date === d);
+    const isToday = d === todayStr;
+
+    const cell = document.createElement('div');
+    cell.className = 'day-cell' +
+      (active ? ' active' : ' inactive') +
+      (hasUber ? ' has-uber' : '') +
+      (hasPriv ? ' has-private' : '');
+    cell.innerHTML = `
+      <div class="day-name">${getDayName(d)}</div>
+      <div class="day-num" style="${isToday ? 'color:var(--accent2)' : ''}">${parseInt(d.split('-')[2])}</div>
+      <div class="day-dot ${hasUber ? 'uber' : (hasPriv ? 'priv' : '')}" style="${(!hasUber && !hasPriv) ? 'opacity:0' : ''}"></div>
+    `;
+    cell.addEventListener('click', () => toggleWorkday(d));
+    grid.appendChild(cell);
+  });
+}
+
+function renderRides() {
+  const mk = currentMonthKey();
+  const monthRides = data.rides.filter(r => r.date.startsWith(mk));
+
+  // Private
+  const privList = document.getElementById('privateList');
+  const privRides = monthRides.filter(r => r.type === 'private')
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  if (privRides.length === 0) {
+    privList.innerHTML = '<div class="empty-state">No private rides this month</div>';
+  } else {
+    privList.innerHTML = privRides.map(r => {
+      const total = Number(r.amount || 0) + Number(r.tip || 0);
+      const badge = r.status === 'booked'
+        ? '<span class="status-badge badge-booked">Booked</span>'
+        : '<span class="status-badge badge-done">Done</span>';
+      const btn = r.status === 'booked'
+        ? `<button class="ride-btn" onclick="openComplete('${r.id}')">Complete</button>`
+        : '';
+      return `
+        <div class="ride-item ${r.status}">
+          <div class="ride-left">
+            <div class="ride-date">${fmt(r.date)}</div>
+            <div class="ride-amount">${fmtMoney(total)}</div>
+            ${r.note ? `<div class="ride-note">${r.note}</div>` : ''}
+          </div>
+          <div class="ride-right">${badge}${btn}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Uber
+  const uberList = document.getElementById('uberList');
+  const uberRides = monthRides.filter(r => r.type === 'uber')
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  if (uberRides.length === 0) {
+    uberList.innerHTML = '<div class="empty-state">No Uber logs this month</div>';
+  } else {
+    uberList.innerHTML = uberRides.map(r => `
+      <div class="ride-item completed">
+        <div class="ride-left">
+          <div class="ride-date">${fmt(r.date)}</div>
+          <div class="ride-amount">${fmtMoney(r.amount)}</div>
+        </div>
+        <div class="ride-right">
+          <button class="ride-btn" onclick="deleteRideById('${r.id}')">✕</button>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+function renderSettings() {
+  const td = document.getElementById('tokenDisplay');
+  const clearBtn = document.getElementById('clearTokenBtn');
+  const status = document.getElementById('tokenStatus');
+  const gistId = document.getElementById('gistIdDisplay');
+  const gistIdVal = document.getElementById('gistIdVal');
+
+  if (data.ghToken) {
+    td.style.display = 'block';
+    td.textContent = data.ghToken.slice(0,8) + '••••••••••••••••' + data.ghToken.slice(-4);
+    clearBtn.style.display = 'inline-block';
+    status.textContent = data.lastSync
+      ? '✅ Connected — last sync ' + new Date(data.lastSync).toLocaleString()
+      : '⏳ Token saved, not synced yet';
+    status.style.color = data.lastSync ? 'var(--accent2)' : 'var(--muted)';
+  } else {
+    td.style.display = 'none';
+    clearBtn.style.display = 'none';
+    status.textContent = '';
+  }
+  if (data.gistId) {
+    gistId.style.display = 'block';
+    gistIdVal.textContent = data.gistId;
+  } else {
+    gistId.style.display = 'none';
+  }
+}
+
+function updateGistBanner() {
+  document.getElementById('gistBanner').style.display = data.ghToken ? 'none' : 'flex';
+}
+
+// ============================================================
+// ACTIONS
+// ============================================================
+function toggleWorkday(date) {
+  const override = data.workdays[date];
+  const wasActive = override !== undefined ? override : isWeekday(date);
+  data.workdays[date] = !wasActive;
+  save();
+  renderWorkdays();
+  renderBanner();
+}
+
+function resetWorkdays() {
+  const mk = currentMonthKey();
+  getMonthDates(mk).forEach(d => { delete data.workdays[d]; });
+  save();
+  renderWorkdays();
+  renderBanner();
+}
+
+function saveTarget() {
+  const val = parseFloat(document.getElementById('targetInput').value);
+  if (!val || val <= 0) { showToast('Enter a valid amount'); return; }
+  data.target[currentMonthKey()] = val;
+  save();
+  render();
+  closeModal('targetModal');
+  showToast('Target set');
+}
+
+function saveUber() {
+  const date = document.getElementById('uberDate').value;
+  const amount = parseFloat(document.getElementById('uberAmount').value);
+  if (!date || !amount || amount <= 0) { showToast('Fill in all fields'); return; }
+  data.rides.push({
+    id: Date.now().toString(),
+    type: 'uber',
+    date,
+    amount,
+    status: 'completed'
+  });
+  save();
+  render();
+  closeModal('uberModal');
+  showToast('Uber earnings logged');
+}
+
+function savePrivate() {
+  const date = document.getElementById('privateDate').value;
+  const amount = parseFloat(document.getElementById('privateAmount').value);
+  const note = document.getElementById('privateNote').value.trim();
+  if (!date || !amount || amount <= 0) { showToast('Fill in date and fare'); return; }
+  data.rides.push({
+    id: Date.now().toString(),
+    type: 'private',
+    date,
+    amount,
+    note: note || '',
+    status: 'booked',
+    tip: 0
+  });
+  save();
+  render();
+  closeModal('privateModal');
+  showToast('Ride booked');
+}
+
+function openComplete(rideId) {
+  const ride = data.rides.find(r => r.id === rideId);
+  if (!ride) return;
+  document.getElementById('completeRideId').value = rideId;
+  document.getElementById('completeAmount').value = ride.amount || '';
+  document.getElementById('completeTip').value = ride.tip || '';
+  openModal('completeModal');
+}
+
+function markComplete() {
+  const id = document.getElementById('completeRideId').value;
+  const amount = parseFloat(document.getElementById('completeAmount').value) || 0;
+  const tip = parseFloat(document.getElementById('completeTip').value) || 0;
+  const ride = data.rides.find(r => r.id === id);
+  if (!ride) return;
+  ride.status = 'completed';
+  ride.amount = amount;
+  ride.tip = tip;
+  save();
+  render();
+  closeModal('completeModal');
+  showToast('Ride completed');
+}
+
+function deleteRide() {
+  const id = document.getElementById('completeRideId').value;
+  if (!confirm('Delete this ride?')) return;
+  data.rides = data.rides.filter(r => r.id !== id);
+  save();
+  render();
+  closeModal('completeModal');
+  showToast('Ride deleted');
+}
+
+function deleteRideById(id) {
+  if (!confirm('Delete this entry?')) return;
+  data.rides = data.rides.filter(r => r.id !== id);
+  save();
+  render();
+  showToast('Deleted');
+}
+
+// ============================================================
+// DATA EXPORT / IMPORT
+// ============================================================
+function openDataModal() {
+  document.getElementById('exportData').value = JSON.stringify(data, null, 2);
+  document.getElementById('importData').value = '';
+  openModal('dataModal');
+}
+
+function copyData() {
+  const el = document.getElementById('exportData');
+  el.select();
+  try {
+    navigator.clipboard.writeText(el.value).then(() => showToast('Copied!'));
+  } catch(e) {
+    document.execCommand('copy');
+    showToast('Copied!');
+  }
+}
+
+function importData() {
+  const raw = document.getElementById('importData').value.trim();
+  if (!raw) { showToast('Paste data first'); return; }
+  try {
+    const parsed = JSON.parse(raw);
+    data = Object.assign(defaultData(), parsed);
+    save();
+    render();
+    closeModal('dataModal');
+    showToast('✅ Data imported');
+  } catch(e) {
+    showToast('❌ Invalid data');
+  }
+}
+
+// ============================================================
+// HISTORY MODAL
+// ============================================================
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function openHistoryModal() {
+  const mk = currentMonthKey();
+  const year = parseInt(mk.split('-')[0]) - 1;
+  const inputs = document.getElementById('historyInputs');
+  inputs.innerHTML = MONTHS.map((m, i) => {
+    const key = `${year}-${String(i+1).padStart(2,'0')}`;
+    const val = data.history[key] || '';
+    return `
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">${m} ${year}</label>
+        <input class="form-input" data-key="${key}" type="number" value="${val}" placeholder="0" inputmode="decimal">
+      </div>
+    `;
+  }).join('');
+  document.getElementById('historyModal').classList.add('open');
+}
+
+function saveHistory() {
+  document.querySelectorAll('#historyInputs input').forEach(inp => {
+    const key = inp.dataset.key;
+    const val = parseFloat(inp.value) || 0;
+    if (val > 0) data.history[key] = val;
+    else delete data.history[key];
+  });
+  save();
+  renderBanner();
+  closeModal('historyModal');
+  showToast('History saved');
+}
+
+// ============================================================
+// MODAL HELPERS
+// ============================================================
+function openModal(id) {
+  if (id === 'dataModal') {
+    document.getElementById('exportData').value = JSON.stringify(data, null, 2);
+    document.getElementById('importData').value = '';
+  }
+  if (id === 'uberModal') {
+    document.getElementById('uberDate').value = today();
+    document.getElementById('uberAmount').value = '';
+  }
+  if (id === 'privateModal') {
+    document.getElementById('privateDate').value = today();
+    document.getElementById('privateAmount').value = '';
+    document.getElementById('privateNote').value = '';
+  }
+  if (id === 'targetModal') {
+    document.getElementById('targetInput').value = data.target[currentMonthKey()] || '';
+  }
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+// ============================================================
+// TABS
+// ============================================================
+function showTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+load();
+render();
+autoRestore();
+</script>
+</body>
+</html>
